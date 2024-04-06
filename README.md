@@ -9,5 +9,5 @@
 >
 >conda install mysql-connector-python
 >
->git clone 
+>git clone https://github.com/llibrando/posbackend
 
