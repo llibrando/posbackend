@@ -5,8 +5,6 @@
 >
 >conda install uvicorn, bcrypt
 >
->conda install -c conda-forge fastapi
->
 >conda install mysql-connector-python
 >
 >git clone https://github.com/llibrando/posbackend
