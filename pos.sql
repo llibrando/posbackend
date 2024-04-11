@@ -36,7 +36,7 @@ CREATE TABLE `cashier` (
 --
 -- Dumping data for table `cashier`
 --
-
+  
 INSERT INTO `cashier` (`cashierID`, `username`, `password`) VALUES
 (1, 'JohnDoe', 'password1'),
 (2, 'AliceSmith', 'password2'),
@@ -150,25 +150,28 @@ INSERT INTO `transaction` (`TransactionID`, `ItemID`, `OrderID`, `Subtotal`) VAL
 -- Indexes for table `cashier`
 --
 ALTER TABLE `cashier`
-  ADD PRIMARY KEY (`cashierID`);
+  ADD PRIMARY KEY (`cashierID`),
+  ON DELETE CASCADE;
 
 --
 -- Indexes for table `menu`
 --
 ALTER TABLE `menu`
-  ADD PRIMARY KEY (`ItemID`);
+  ADD PRIMARY KEY (`ItemID`)
+  ON DELETE CASCADE;
 
 --
 -- Indexes for table `orders`
 --
 ALTER TABLE `orders`
-  ADD PRIMARY KEY (`OrderID`);
+  ADD PRIMARY KEY (`OrderID`)
+  ON DELETE CASCADE;
 
 --
 -- Indexes for table `payment`
 --
 ALTER TABLE `payment`
-  ADD PRIMARY KEY (`PaymentID`),
+  ADD PRIMARY KEY (`PaymentID`),  
   ADD KEY `TransactionID` (`TransactionID`);
 
 --
@@ -177,7 +180,8 @@ ALTER TABLE `payment`
 ALTER TABLE `transaction`
   ADD PRIMARY KEY (`TransactionID`),
   ADD KEY `FK_ItemID` (`ItemID`),
-  ADD KEY `FK_OrderID` (`OrderID`);
+  ADD KEY `FK_OrderID` (`OrderID`),
+  ON DELETE CASCADE;
 
 --
 -- Constraints for dumped tables
@@ -187,14 +191,15 @@ ALTER TABLE `transaction`
 -- Constraints for table `payment`
 --
 ALTER TABLE `payment`
-  ADD CONSTRAINT `payment_ibfk_1` FOREIGN KEY (`TransactionID`) REFERENCES `transaction` (`TransactionID`);
+  ADD CONSTRAINT `payment_ibfk_1` FOREIGN KEY (`TransactionID`) REFERENCES `transaction` (`TransactionID`)ON DELETE CASCADE;
 
 --
 -- Constraints for table `transaction`
 --
 ALTER TABLE `transaction`
   ADD CONSTRAINT `FK_ItemID` FOREIGN KEY (`ItemID`) REFERENCES `menu` (`ItemID`),
-  ADD CONSTRAINT `FK_OrderID` FOREIGN KEY (`OrderID`) REFERENCES `orders` (`OrderID`);
+  ADD CONSTRAINT `FK_OrderID` FOREIGN KEY (`OrderID`) REFERENCES `orders` (`OrderID`),
+  ON DELETE CASCADE,
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
