@@ -1,4 +1,3 @@
-# model/orders.py
 from fastapi import Depends, HTTPException, APIRouter, Form
 from model.db import get_db
 import bcrypt
@@ -44,53 +43,70 @@ async def read_orders(
 
 # -------------------PUT/UPDATE----------------------------------
 @ordersRouter.post("/orders/", response_model=dict)
-async def create_order(order_status: str, order_date: str, order_time: str, order_total: int, db=Depends(get_db)):
+async def create_order(
+    order_id:int,
+    order_status: str, 
+    order_date: str, 
+    order_time: str, 
+    order_total: int, db=Depends(get_db)):
     try:
         # Insert the new order into the database
-        query = "INSERT INTO orders (OrderStatus, orderDate, orderTime, orderTotal) VALUES (%s, %s, %s, %s)"
-        db[0].execute(query, (order_status, order_date, order_time, order_total))
+        query = "INSERT INTO orders (OrderID, OrderStatus,orderDate,orderTime, orderTotal) VALUES (%s, %s, %s, %s,%s)"
+        db[0].execute(query, (order_id,order_status, order_date, order_time, order_total))
         db[1].commit()
 
         # Get the last inserted order ID
         order_id = db[0].lastrowid
 
         # Return success message
-        return {"message": "Order created successfully", "order_id": order_id}
+        return {"message": "Order created successfully", 
+        "orderID": order_id,
+        "orderStatus": order_status,
+        "orderDate": order_date,
+        "orderTime": order_time,
+        "orderTotal": order_total}
     except mysql.connector.Error as e:
         # Handle database errors
         raise HTTPException(status_code=500, detail=f"Database Error: {str(e)}")
     finally:
         # Close the cursor and database connection
         db[0].close()
-
+        
 #update
 @ordersRouter.put("/orders/{order_id}",response_model=dict)
-async def update_order(order_id: int, order_update: OrderUpdate, db: mysql.connector.connection.MySQLConnection = Depends(get_db)):
-    # Prepare SQL query to update the order
-    update_query = """
-    UPDATE orders
-    SET OrderStatus = %s, orderDate = %s, orderTime = %s, orderTotal = %s
-    WHERE OrderID = %s
-    """
+async def update_order(order_id: int, order_update: OrderUpdate, db= Depends(get_db)):
+    try:
+        # Check if the order exists
+        query_check_order = "SELECT OrderID FROM orders WHERE OrderID = %s"
+        db[0].execute(query_check_order, (order_id,))
+        existing_order = db[0].fetchone()
 
-    # Execute the SQL query with the provided data
-    cursor = db.cursor()
-    cursor.execute(update_query, (
-        order_update.OrderStatus,
-        order_update.orderDate,
-        order_update.orderTime,
-        order_update.orderTotal,
-        order_id
-    ))
+        if not existing_order:
+            raise HTTPException(status_code=404, detail="Order not found")
 
-    # Commit changes to the database
-    db.commit()
+        # Update the order
+        query_update_order = """
+        UPDATE orders
+        SET OrderStatus = %s, orderDate = %s, orderTime = %s, orderTotal = %s
+        WHERE OrderID = %s
+        """
+        db[0].execute(query_update_order, (
+            order_update.OrderStatus,
+            order_update.orderDate,
+            order_update.orderTime,
+            order_update.orderTotal,
+            order_id
+        ))
+        db[1].commit()
 
-    # Check if the update was successful
-    if cursor.rowcount == 0:
-        raise HTTPException(status_code=404, detail="Order not found")
+        return {"message": "Order updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+    finally:
+        db[0].close()
 
-    return {"message": "Order updated successfully"}
+
+
 
     # Code na gikan sa CASHIER na DELETE---------------------------------
 
