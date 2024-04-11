@@ -71,17 +71,17 @@ async def create_cashier(cashier: CashierCreate, db=Depends(get_db)):
 
 # -------------------------------PUT/UPDATE---------------------------------------------
 @cashierRouter.put("/cashier/{cashier_id}", response_model=dict)
-async def update_cashier( cashier_update: CashierUpdate, db=Depends(get_db)):
+async def update_cashier(cashier_id: int, cashier_update: CashierUpdate, db=Depends(get_db)):
     try:
         query_check_user = "SELECT cashierID, username, password FROM cashier WHERE cashierID = %s"
-        db[0].execute(query_check_user, (cashier_update))
+        db[0].execute(query_check_user, (cashier_id,))
         existing_user = db[0].fetchone()
 
         if not existing_user:
             raise HTTPException(status_code=404, detail="Cashier not found")
 
         query_update_user = "UPDATE cashier SET username = %s, password = %s WHERE cashierID = %s"
-        db[0].execute(query_update_user, (cashier_update.username, cashier_update.password, cashier_update.CashierID))
+        db[0].execute(query_update_user, (cashier_update.username, cashier_update.password, cashier_id))
         db[1].commit()
 
         return {"message": "Cashier updated successfully"}
@@ -89,6 +89,7 @@ async def update_cashier( cashier_update: CashierUpdate, db=Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
     finally:
         db[0].close()
+
 
 
 
