@@ -14,6 +14,7 @@ app = FastAPI()
 app.include_router(cashierRouter, prefix="/api")
 app.include_router(menuRouter, prefix="/api")
 app.include_router(ordersRouter, prefix="/api")
-app.include_router(paymentRouter, prefix="/api")
 app.include_router(transactionRouter, prefix="/api")
+app.include_router(paymentRouter, prefix="/api")
+
 
