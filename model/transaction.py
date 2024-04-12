@@ -13,27 +13,27 @@ transactionRouter = APIRouter(tags=["Transaction"])
 async def read_transaction(
     db=Depends(get_db)
 ):
-    query = "SELECT transactionID, Subtotal FROM transaction"
+    query = "SELECT transactionID, ItemID, Subtotal FROM transaction"
     db[0].execute(query)
-    transaction = [{"transactionID": transaction[0], "Subtotal": transaction[1]} for transaction in db[0].fetchall()]
+    transaction = [{"transactionID": transaction[0], "ItemID": transaction[1] , "Subtotal": transaction[2]} for transaction in db[0].fetchall()]
     return transaction
 
 
-@transactionRouter.get("/transaction/{transactionID}", response_model=dict)
-async def read_transaction_by_id(
-    ItemID: int, 
-    db=Depends(get_db)
-):
-    query = "SELECT transactionID, Subtotal FROM transaction WHERE transactionID = %s"
-    db[0].execute(query, (ItemID,))
-    transaction = db[0].fetchone()
-    if transaction:                             
-        return {
-            "transactionID": transaction[0],
-            "Subtotal": transaction[1],
-        }
-    raise HTTPException(status_code=404, detail="Transaction not found")
-
+@transactionRouter.get("/transaction/{transactionID}", response_model=list)
+async def read_transaction_by_id(TransactionID: int, db=Depends(get_db)):
+    try:
+        query = "SELECT transactionID, ItemID, Subtotal FROM transaction WHERE transactionID = %s"
+        db[0].execute(query, (TransactionID,))
+        transaction = db[0].fetchone()
+        if transaction:
+            return {
+                "TransactionID": transaction[0],
+                "ItemID": transaction[1],
+                "Subtotal": transaction[2]
+            }
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
 
 # -----------------------------POST/CREATE----------------------------------
@@ -41,13 +41,13 @@ async def read_transaction_by_id(
 @transactionRouter.post("/transaction/", response_model=dict)
 async def create_transaction(
     transaction_id: int, 
-    item_id: int, 
+    ItemID:int,
     sub_total: float,  
     db=Depends(get_db)
 ):
 
-    query = "INSERT INTO transaction (TransactionID, ItemID, SubTotal) VALUES ( %s, %s, %s)"
-    db[0].execute(query, (transaction_id, item_id, sub_total))
+    query = "INSERT INTO transaction (TransactionID,ItemID, SubTotal) VALUES ( %s,%s, %s)"
+    db[0].execute(query, (transaction_id,ItemID, sub_total))
 
     # Retrieve the last inserted ID using LAST_INSERT_ID()
     db[0].execute("SELECT LAST_INSERT_ID()")
@@ -56,8 +56,9 @@ async def create_transaction(
 
     return {
         "TransactionID": transaction_id, 
-        "ItemID": item_id,
+        "ItemID":ItemID,
         "SubTotal": sub_total,     
+
     }
 
 
@@ -66,16 +67,14 @@ async def create_transaction(
 
 @transactionRouter.put("/transaction/{transactionid}", response_model=dict)
 async def update_transaction(
-    transactionid: int,
-    item_id: int,
-    order_id: int,
+    transaction_id: int,
     SubTotal: float,
     db=Depends(get_db)
 ):
 
     # Update cashier information in the database 
-    query = "UPDATE transaction SET ItemID = %s, OrderID = %s, SubTotal = %s  WHERE TransactionID = %s"
-    db[0].execute(query, (item_id, order_id, SubTotal, transactionid))
+    query = "UPDATE transaction SET  SubTotal = %s  WHERE TransactionID = %s"
+    db[0].execute(query, ( SubTotal, transaction_id))
 
     # Check if the update was successful
     if db[0].rowcount > 0:
