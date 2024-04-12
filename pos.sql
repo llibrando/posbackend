@@ -150,58 +150,34 @@ INSERT INTO `transaction` (`TransactionID`, `ItemID`, `OrderID`, `Subtotal`) VAL
 -- Indexes for table `cashier`
 --
 ALTER TABLE `cashier`
-  ADD PRIMARY KEY (`cashierID`),
-  ON DELETE CASCADE;
+  ADD PRIMARY KEY (`cashierID`);
 
 --
 -- Indexes for table `menu`
 --
+ALTER TABLE `transaction`
+  ADD PRIMARY KEY (`TransactionID`);
+
+-- Add primary key for table `menu`
 ALTER TABLE `menu`
-  ADD PRIMARY KEY (`ItemID`)
-  ON DELETE CASCADE;
+  ADD PRIMARY KEY (`ItemID`);
 
---
--- Indexes for table `orders`
---
+-- Add primary key for table `orders`
 ALTER TABLE `orders`
-  ADD PRIMARY KEY (`OrderID`)
-  ON DELETE CASCADE;
+  ADD PRIMARY KEY (`OrderID`);
 
---
--- Indexes for table `payment`
---
+-- Add primary key for table `payment`
 ALTER TABLE `payment`
-  ADD PRIMARY KEY (`PaymentID`),  
-  ADD KEY `TransactionID` (`TransactionID`);
+  ADD PRIMARY KEY (`PaymentID`);
 
---
--- Indexes for table `transaction`
---
-ALTER TABLE `transaction`
-  ADD PRIMARY KEY (`TransactionID`),
-  ADD KEY `FK_ItemID` (`ItemID`),
-  ADD KEY `FK_OrderID` (`OrderID`),
-  ON DELETE CASCADE;
-
---
--- Constraints for dumped tables
---
-
---
--- Constraints for table `payment`
---
+-- Add foreign key constraint for table `payment`
 ALTER TABLE `payment`
-  ADD CONSTRAINT `payment_ibfk_1` FOREIGN KEY (`TransactionID`) REFERENCES `transaction` (`TransactionID`)ON DELETE CASCADE;
+  ADD CONSTRAINT `payment_ibfk_1` FOREIGN KEY (`TransactionID`) REFERENCES `transaction` (`TransactionID`) ON DELETE CASCADE;
 
---
--- Constraints for table `transaction`
---
-ALTER TABLE `transaction`
-  ADD CONSTRAINT `FK_ItemID` FOREIGN KEY (`ItemID`) REFERENCES `menu` (`ItemID`),
-  ADD CONSTRAINT `FK_OrderID` FOREIGN KEY (`OrderID`) REFERENCES `orders` (`OrderID`),
-  ON DELETE CASCADE,
-COMMIT;
-
+-- Add foreign key constraints for table `transaction`
+  ALTER TABLE `transaction`
+  ADD CONSTRAINT `FK_ItemID` FOREIGN KEY (`ItemID`) REFERENCES `menu` (`ItemID`) ON DELETE CASCADE,
+  ADD CONSTRAINT `FK_OrderID` FOREIGN KEY (`OrderID`) REFERENCES `orders` (`OrderID`) ON DELETE CASCADE;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
