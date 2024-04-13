@@ -7,13 +7,7 @@ from typing import Optional
 from pydantic import BaseModel
 import mysql.connector
 import bcrypt
-class CashierUpdate(BaseModel):
-    cashierID:int
-    username: str
-    password: str
-
-
-cashierRouter = APIRouter(tags=["Cashier"]) 
+cashierRouter = APIRouter(tags=["cashier"]) 
 
 # CRUD operation
 
@@ -72,27 +66,25 @@ async def create_cashier(
         db[0].close()
 
 
-
 # -------------------------------PUT/UPDATE---------------------------------------------
 @cashierRouter.put("/cashier/{cashier_id}", response_model=dict)
-async def update_cashier(cashier_id: int, cashier_update: CashierUpdate, db=Depends(get_db)):
+async def update_cashier(cashierID:int= Form(...), 
+    username: str= Form(...), 
+    password: str= Form(...),  db=Depends(get_db)):
     try:
-        query_check_user = "SELECT cashierID, username, password FROM cashier WHERE cashierID = %s"
-        db[0].execute(query_check_user, (cashier_id,))
-        existing_user = db[0].fetchone()
-
-        if not existing_user:
-            raise HTTPException(status_code=404, detail="Cashier not found")
-
         query_update_user = "UPDATE cashier SET username = %s, password = %s WHERE cashierID = %s"
-        db[0].execute(query_update_user, (cashier_update.username, cashier_update.password, cashier_id))
+        db[0].execute(query_update_user, (cashierID,username,password))
         db[1].commit()
-
-        return {"message": "Cashier updated successfully"}
+        return {
+            "CashierID": cashierID, 
+            "Username": username,
+            "Password": password,    
+            }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
     finally:
         db[0].close()
+
 
 
 
