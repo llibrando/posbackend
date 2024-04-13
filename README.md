@@ -5,7 +5,7 @@
 >
 >conda install uvicorn, bcrypt
 >
->conda install mysql-connector-python
+>conda install -c conda-forge mysql-connector-python
 >
 >git clone https://github.com/llibrando/posbackend
 >
