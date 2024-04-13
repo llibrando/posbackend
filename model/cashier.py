@@ -1,5 +1,5 @@
 # model/cashier.py
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import Depends, HTTPException, APIRouter, Form
 from pydantic import BaseModel
 from typing import List
 from .db import get_db 
@@ -7,6 +7,7 @@ from typing import Optional
 from pydantic import BaseModel
 import mysql.connector
 import bcrypt
+
 cashierRouter = APIRouter(tags=["cashier"]) 
 
 # CRUD operation
@@ -35,10 +36,6 @@ async def read_cashier(
             "username": cashier[1],
         }
     raise HTTPException(status_code=404, detail="Cashier not found")
-
-
-
-
 # --------------------POST---------------------------------------------------------------
 @cashierRouter.post("/cashier/",  response_model=dict)
 async def create_cashier(
@@ -78,14 +75,12 @@ async def update_cashier(cashierID:int= Form(...),
         return {
             "CashierID": cashierID, 
             "Username": username,
-            "Password": password,    
+            "Password": password,   
             }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
     finally:
         db[0].close()
-
-
 
 
 
@@ -116,5 +111,13 @@ async def delete_cashier(cashier_id: int,
     finally:
         # Close the cursor and database connection
         db[0].close()
+
+def hash_password(password: str):
+    # Generate a salt and hash the password
+    salt = bcrypt.gensalt()
+    hashed_password = bcrypt.hashpw(password.encode('utf-8'), salt)
+    return hashed_password.decode('utf-8') 
+
+
 
 
