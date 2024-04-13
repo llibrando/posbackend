@@ -47,25 +47,30 @@ async def read_cashier(
 
 # --------------------POST---------------------------------------------------------------
 @cashierRouter.post("/cashier/",  response_model=dict)
-async def create_cashier( cashierID: int= Form(...), 
-               username: str= Form(...), 
-                  password: str= Form(...), db=Depends(get_db)):
+async def create_cashier(
+     cashierID: int= Form(...), 
+     username: str= Form(...), 
+      password: str= Form(...), 
+      db=Depends(get_db)):
     try:
-        # Construct the SQL query to insert a new cashier
+        
         query = "INSERT INTO cashier (cashierID, username, password) VALUES (%s, %s,%s)"
         # Execute the query with the provided data
-        db[0].execute(query, (cashier.cashierID, cashier.username, cashier.password))
-        # Commit the transaction
+        db[0].execute(query,(cashierID, username,password))
         db[1].commit()
-        cashier.cashierID = db[0].lastrowid
-        # Return the created cashier
-        return cashier
+        cashierID = db[0].lastrowid
+        return {
+            "CashierID": cashierID, 
+            "Username": username,
+            "Password": password,    
+            }
     except Exception as e:
         # If an error occurs, raise an HTTPException with a 500 status code
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
     finally:
         # Close the cursor and database connection
         db[0].close()
+
 
 
 # -------------------------------PUT/UPDATE---------------------------------------------
