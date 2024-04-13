@@ -11,10 +11,7 @@ class CashierUpdate(BaseModel):
     cashierID:int
     username: str
     password: str
-class CashierCreate(BaseModel):
-    cashierID: int
-    username: str
-    password: str
+
 
 cashierRouter = APIRouter(tags=["Cashier"]) 
 
@@ -49,8 +46,10 @@ async def read_cashier(
 
 
 # --------------------POST---------------------------------------------------------------
-@cashierRouter.post("/cashier/", response_model=CashierCreate)
-async def create_cashier(cashier: CashierCreate, db=Depends(get_db)):
+@cashierRouter.post("/cashier/",  response_model=dict)
+async def create_cashier( cashierID: int= Form(...), 
+               username: str= Form(...), 
+                  password: str= Form(...), db=Depends(get_db)):
     try:
         # Construct the SQL query to insert a new cashier
         query = "INSERT INTO cashier (cashierID, username, password) VALUES (%s, %s,%s)"
@@ -58,6 +57,7 @@ async def create_cashier(cashier: CashierCreate, db=Depends(get_db)):
         db[0].execute(query, (cashier.cashierID, cashier.username, cashier.password))
         # Commit the transaction
         db[1].commit()
+        cashier.cashierID = db[0].lastrowid
         # Return the created cashier
         return cashier
     except Exception as e:
@@ -66,7 +66,6 @@ async def create_cashier(cashier: CashierCreate, db=Depends(get_db)):
     finally:
         # Close the cursor and database connection
         db[0].close()
-
 
 
 # -------------------------------PUT/UPDATE---------------------------------------------
