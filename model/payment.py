@@ -7,7 +7,6 @@ class PaymentCreate(BaseModel):
     transaction_id: int
     payment_type: str
 
-PaymentRouter = APIRouter()
 PaymentRouter = APIRouter(tags=["payment"])
 paymentRouter = APIRouter(tags=["Payment"])
 
@@ -44,14 +43,13 @@ async def read_payment(
 
 @paymentRouter.post("/payment/", response_model=dict)
 async def create_payment(
-    payment_id: int = Form(...), 
-    TransactionID: int = Form(...), 
+    payment_id: int = Form(...),  
     PaymentType: str = Form(...),
     db=Depends(get_db)
 ):
 
-    query = "INSERT INTO payment (PaymentID, TransactionID, PaymentType) VALUES (%s, %s, %s)"
-    db[0].execute(query, (payment_id, TransactionID, PaymentType))
+    query = "INSERT INTO payment (PaymentID, PaymentType) VALUES (%s, %s)"
+    db[0].execute(query, (payment_id,PaymentType))
 
     # Retrieve the last inserted ID using LAST_INSERT_ID()
     db[0].execute("SELECT LAST_INSERT_ID()")
@@ -59,9 +57,9 @@ async def create_payment(
     db[1].commit()
 
     return {"PaymentID": payment_id, 
-            "TransactionID": TransactionID,
             "PaymentType": PaymentType,  
             }
+
 
 
 
@@ -70,14 +68,13 @@ async def create_payment(
 @paymentRouter.put("/payment/{payment_id}", response_model=dict)
 async def update_payment(
     PaymentID: int,
-    TransactionID: int,
     PaymentType: str,
     db=Depends(get_db)
 ):
 
     # Update payment information in the database 
-    query = "UPDATE payment SET TransactionID = %s, PaymentType = %s  WHERE PaymentID = %s"
-    db[0].execute(query, (TransactionID, PaymentType, PaymentID))
+    query = "UPDATE payment SET PaymentType = %s  WHERE PaymentID = %s"
+    db[0].execute(query, ( PaymentType, PaymentID))
 
     # Check if the update was successful
     if db[0].rowcount > 0:
