@@ -37,8 +37,8 @@ async def read_payment(
 
 @paymentRouter.post("/payment/", response_model=dict)
 async def create_payment(
-    payment_id: int = Form(...),  
-    PaymentType: str = Form(...),
+    payment_id: int ,  
+    PaymentType: str ,
     db=Depends(get_db)
 ):
  try:
