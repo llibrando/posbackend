@@ -37,10 +37,10 @@ async def read_menu(ItemID: int, db=Depends(get_db)):
 
 @menuRouter.post("/menu/", response_model=dict)
 async def create_item(
-    item_id: int = Form(...), 
-    menuItemCategory: str = Form(...), 
-    menuItemName: str = Form(...),
-    menuItemPrice: int = Form(...),  
+    item_id: int, 
+    menuItemCategory: str, 
+    menuItemName: str,
+    menuItemPrice: int,  
     db=Depends(get_db)
 ):
   try:
@@ -49,10 +49,10 @@ async def create_item(
 
     # Retrieve the last inserted ID using LAST_INSERT_ID()
     db[0].execute("SELECT LAST_INSERT_ID()")
-    new_user_id = db[0].fetchone()[0]
+    new_item_id = db[0].fetchone()[0]
     db[1].commit()
 
-    return {"item_id": new_user_id, 
+    return {"item_id": item_id, 
             "menuItemCategory": menuItemCategory,
             "menuItemName": menuItemName,
             "menuItemPrice": menuItemPrice,     
