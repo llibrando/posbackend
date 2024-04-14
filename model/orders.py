@@ -47,13 +47,14 @@ async def create_order(
         # Insert the new order into the database
         query = "INSERT INTO orders (OrderID, OrderStatus,orderDate,orderTime, orderTotal) VALUES (%s, %s, %s, %s,%s)"
         db[0].execute(query, (order_id,order_status, order_date, order_time, order_total))
-        db[1].commit()
 
         # Get the last inserted order ID
-        order_id = db[0].lastrowid
+        db[0].execute("SELECT LAST_INSERT_ID()")
+        order_id = db[0].fetchone()[0]
+        db[1].commit()
 
         # Return success message
-        return {"message": "Order created successfully", 
+        return { 
         "orderID": order_id,
         "orderStatus": order_status,
         "orderDate": order_date,
@@ -70,10 +71,10 @@ async def create_order(
 @ordersRouter.put("/orders/{order_id}",response_model=dict)
 async def update_order(
     order_id: int,
-    orderStatus: str= Form(...), 
-    orderDate: str= Form(...), 
-    orderTime: str= Form(...), 
-    orderTotal: int= Form(...), 
+    orderStatus: str, 
+    orderDate: str, 
+    orderTime: str, 
+    orderTotal: int, 
     db= Depends(get_db)):
     try:
         # Check if the order exists
@@ -85,11 +86,7 @@ async def update_order(
             raise HTTPException(status_code=404, detail="Order not found")
 
         # Update the order
-        query_update_order = """
-        UPDATE orders
-        SET orderStatus = %s, orderDate = %s, orderTime = %s, orderTotal = %s
-        WHERE OrderID = %s
-        """
+        query_update_order = "UPDATE ordersSET orderStatus = %s, orderDate = %s, orderTime = %s, orderTotal = %s WHERE OrderID = %s"
         db[0].execute(query_update_order,(
           order_id,
           orderStatus,
