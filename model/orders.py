@@ -35,7 +35,7 @@ async def read_orders(
         }
     raise HTTPException(status_code=404, detail="Order not found")
 
-# -------------------PUT/UPDATE----------------------------------
+# -------------------PUT/CREATE----------------------------------
 @ordersRouter.post("/orders/", response_model=dict)
 async def create_order(
     order_id:int,
@@ -70,33 +70,21 @@ async def create_order(
 #--------------------UPDATE----------------------
 @ordersRouter.put("/orders/{order_id}",response_model=dict)
 async def update_order(
-    order_id: int,
+    OrderID: int,
     orderStatus: str, 
     orderDate: str, 
     orderTime: str, 
     orderTotal: int, 
     db= Depends(get_db)):
     try:
-        # Check if the order exists
-        query_check_order = "SELECT OrderID FROM orders WHERE OrderID = %s"
-        db[0].execute(query_check_order, (order_id,))
-        existing_order = db[0].fetchone()
-
-        if not existing_order:
-            raise HTTPException(status_code=404, detail="Order not found")
-
         # Update the order
-        query_update_order = "UPDATE ordersSET orderStatus = %s, orderDate = %s, orderTime = %s, orderTotal = %s WHERE OrderID = %s"
-        db[0].execute(query_update_order,(
-          order_id,
-          orderStatus,
-          orderDate,
-          orderTime,
-          orderTotal,
-    
-        ))
-        db[1].commit()
+        query = "UPDATE orders SET orderStatus = %s, orderDate = %s, orderTime = %s, orderTotal = %s WHERE OrderID = %s"
+        db[0].execute(query, (OrderID,orderStatus,orderDate,orderTime,orderTotal))
 
+    # Check if the update was successful
+        if db[0].rowcount > 0:
+         db[1].commit()
+        
         return {"message": "Order updated successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
