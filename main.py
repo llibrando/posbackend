@@ -6,6 +6,8 @@ from model.menu import menuRouter
 from model.payment import paymentRouter
 from model.orders import ordersRouter
 from model.transaction import transactionRouter
+from fastapi.middleware.cors import CORSMiddleware
+
 
 
 app = FastAPI()
@@ -17,4 +19,14 @@ app.include_router(ordersRouter, prefix="/api")
 app.include_router(transactionRouter, prefix="/api")
 app.include_router(paymentRouter, prefix="/api")
 
+origins = [
+    "http://localhost:5173",
+]
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+)
