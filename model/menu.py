@@ -5,59 +5,64 @@ import bcrypt
 
 menuRouter = APIRouter(tags=["Menu"])
 
-# CRUD operations
+# CRUD operations 
 
 @menuRouter.get("/menu/", response_model=list)
 async def read_menu(
     db=Depends(get_db)
 ):
-    query = "SELECT ItemID, menuItemName FROM menu"
+    query = "SELECT ItemID,menuItemCategory, menuItemName, menuItemPrice FROM menu"
     db[0].execute(query)
-    menu = [{"ItemID": menu[0], "menuItemName": menu[1]} for menu in db[0].fetchall()]
+    menu = [{"ItemID": menu[0], "menuItemCategory":menu[1], "menuItemName": menu[2],"menuItemPrice": menu[3]} for menu in db[0].fetchall()]
     return menu
 
 
 @menuRouter.get("/menu/{ItemID}", response_model=dict)
-async def read_menu(
-    ItemID: int, 
-    db=Depends(get_db)
-):
-    query = "SELECT ItemID, menuItemName FROM menu WHERE ItemID = %s"
-    db[0].execute(query, (ItemID,))
-    menu = db[0].fetchone()
-    if menu:                             
-        return {
-            "ItemID": menu[0],
-            "menuItemName": menu[1],
-        }
-    raise HTTPException(status_code=404, detail="Item not found")
-
-
+async def read_menu(ItemID: int, db=Depends(get_db)):
+    try:
+        query = "SELECT ItemID, menuItemCategory, menuItemName, menuItemPrice FROM menu WHERE ItemID = %s"
+        db[0].execute(query, (ItemID,))
+        menu = db[0].fetchone()
+        if menu:
+            return {
+                "ItemID": menu[0],
+                "menuItemCategory": menu[1],
+                "menuItemName": menu[2],
+                "menuItemPrice": menu[3]
+            }
+        raise HTTPException(status_code=404, detail="Item not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 # -----------------------------POST/CREATE----------------------------------
 
 @menuRouter.post("/menu/", response_model=dict)
 async def create_item(
-    item_id: int = Form(...), 
-    menuItemCategory: str = Form(...), 
-    menuItemName: str = Form(...),
-    menuItemPrice: int = Form(...),  
+    item_id: int, 
+    menuItemCategory: str, 
+    menuItemName: str,
+    menuItemPrice: int,  
     db=Depends(get_db)
 ):
-
+  try:
     query = "INSERT INTO menu (ItemID, menuItemCategory, menuItemName, menuItemPrice) VALUES (%s, %s, %s, %s)"
     db[0].execute(query, (item_id, menuItemCategory, menuItemName, menuItemPrice))
 
     # Retrieve the last inserted ID using LAST_INSERT_ID()
     db[0].execute("SELECT LAST_INSERT_ID()")
-    new_user_id = db[0].fetchone()[0]
+    new_item_id = db[0].fetchone()[0]
     db[1].commit()
 
-    return {"item_id": new_user_id, 
+    return {"item_id": item_id, 
             "menuItemCategory": menuItemCategory,
             "menuItemName": menuItemName,
             "menuItemPrice": menuItemPrice,     
             }
-
+  except Exception as e:
+        # If an error occurs, raise an HTTPException with a 500 status code
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+  finally:
+        # Close the cursor and database connection
+        db[0].close()
 
 
 
@@ -66,8 +71,8 @@ async def create_item(
 async def update_order(
     menu_id: int,
     menuItemCategory: str,
-    menuItemName: str,
-    menuItemPrice: int,
+    menuItemName: str, 
+    menuItemPrice: int, 
     db=Depends(get_db)
 ):
 
@@ -93,7 +98,7 @@ async def delete_menu(
     menu_id: int,
     db=Depends(get_db)
 ):
-    # try:
+    try:
         # Check if the item exists
         query_check_menu = "SELECT ItemID FROM menu WHERE ItemID = %s"
         db[0].execute(query_check_menu, (menu_id,))
@@ -108,3 +113,9 @@ async def delete_menu(
         db[1].commit()
 
         return {"message": "Item deleted successfully"}
+    except Exception as e:
+        # Handle other exceptions if necessary
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+    finally:
+        # Close the database cursor
+        db[0].close()

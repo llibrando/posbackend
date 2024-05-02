@@ -41,13 +41,14 @@ async def read_transaction_by_id(TransactionID: int, db=Depends(get_db)):
 @transactionRouter.post("/transaction/", response_model=dict)
 async def create_transaction(
     transaction_id: int, 
-    ItemID:int,
+    
     sub_total: float,  
     db=Depends(get_db)
 ):
+ try:
 
-    query = "INSERT INTO transaction (TransactionID,ItemID, SubTotal) VALUES ( %s,%s, %s)"
-    db[0].execute(query, (transaction_id,ItemID, sub_total))
+    query = "INSERT INTO transaction (TransactionID,ItemID, SubTotal) VALUES ( %s, %s)"
+    db[0].execute(query, (transaction_id, sub_total))
 
     # Retrieve the last inserted ID using LAST_INSERT_ID()
     db[0].execute("SELECT LAST_INSERT_ID()")
@@ -56,10 +57,12 @@ async def create_transaction(
 
     return {
         "TransactionID": transaction_id, 
-        "ItemID":ItemID,
         "SubTotal": sub_total,     
 
     }
+ except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+
 
 
 # ----------------PUT/UPDATE------------------------------------------------

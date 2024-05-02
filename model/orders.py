@@ -1,3 +1,4 @@
+# model/orders.py
 from fastapi import Depends, HTTPException, APIRouter, Form
 from model.db import get_db
 import bcrypt
@@ -5,14 +6,7 @@ import mysql.connector
 from pydantic import BaseModel
 import time, datetime
 
-class OrderUpdate(BaseModel):
-    OrderStatus: str
-    orderDate: str
-    orderTime: str
-    orderTotal: int
-
-ordersRouter = APIRouter()
-ordersRouter = APIRouter(tags=["orders"])
+ordersRouter = APIRouter(tags=["Orders"])
 
 # CRUD operations
 
@@ -41,7 +35,7 @@ async def read_orders(
         }
     raise HTTPException(status_code=404, detail="Order not found")
 
-# -------------------PUT/UPDATE----------------------------------
+# -------------------PUT/CREATE----------------------------------
 @ordersRouter.post("/orders/", response_model=dict)
 async def create_order(
     order_id:int,
@@ -53,13 +47,14 @@ async def create_order(
         # Insert the new order into the database
         query = "INSERT INTO orders (OrderID, OrderStatus,orderDate,orderTime, orderTotal) VALUES (%s, %s, %s, %s,%s)"
         db[0].execute(query, (order_id,order_status, order_date, order_time, order_total))
-        db[1].commit()
 
         # Get the last inserted order ID
-        order_id = db[0].lastrowid
+        db[0].execute("SELECT LAST_INSERT_ID()")
+        order_id = db[0].fetchone()[0]
+        db[1].commit()
 
         # Return success message
-        return {"message": "Order created successfully", 
+        return { 
         "orderID": order_id,
         "orderStatus": order_status,
         "orderDate": order_date,
@@ -72,33 +67,24 @@ async def create_order(
         # Close the cursor and database connection
         db[0].close()
         
-#update
+#--------------------UPDATE----------------------
 @ordersRouter.put("/orders/{order_id}",response_model=dict)
-async def update_order(order_id: int, order_update: OrderUpdate, db= Depends(get_db)):
+async def update_order(
+    OrderID: int,
+    orderStatus: str, 
+    orderDate: str, 
+    orderTime: str, 
+    orderTotal: int, 
+    db= Depends(get_db)):
     try:
-        # Check if the order exists
-        query_check_order = "SELECT OrderID FROM orders WHERE OrderID = %s"
-        db[0].execute(query_check_order, (order_id,))
-        existing_order = db[0].fetchone()
-
-        if not existing_order:
-            raise HTTPException(status_code=404, detail="Order not found")
-
         # Update the order
-        query_update_order = """
-        UPDATE orders
-        SET OrderStatus = %s, orderDate = %s, orderTime = %s, orderTotal = %s
-        WHERE OrderID = %s
-        """
-        db[0].execute(query_update_order, (
-            order_update.OrderStatus,
-            order_update.orderDate,
-            order_update.orderTime,
-            order_update.orderTotal,
-            order_id
-        ))
-        db[1].commit()
+        query = "UPDATE orders SET orderStatus = %s, orderDate = %s, orderTime = %s, orderTotal = %s WHERE OrderID = %s"
+        db[0].execute(query, (OrderID,orderStatus,orderDate,orderTime,orderTotal))
 
+    # Check if the update was successful
+        if db[0].rowcount > 0:
+         db[1].commit()
+        
         return {"message": "Order updated successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
@@ -108,14 +94,14 @@ async def update_order(order_id: int, order_update: OrderUpdate, db= Depends(get
 
 
 
-    # Code na gikan sa CASHIER na DELETE---------------------------------
+    # --------- DELETE---------------------------------
 
 @ordersRouter.delete("/orders/{order_id}", response_model=dict)
 async def delete_order(
     order_id: int,
     db=Depends(get_db)
 ):
-    # try:
+    try:
         # Check if the cashier exists
         query_check_order = "SELECT OrderID FROM orders WHERE OrderID = %s"
         db[0].execute(query_check_order, (order_id,))
@@ -128,5 +114,10 @@ async def delete_order(
         query_delete_order = "DELETE FROM orders WHERE OrderID = %s"
         db[0].execute(query_delete_order, (order_id,))
         db[1].commit()
-
         return {"message": "Order deleted successfully"}
+    except Exception as e:
+        # Handle other exceptions if necessary
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+    finally:
+        # Close the database cursor
+        db[0].close()
