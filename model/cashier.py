@@ -11,10 +11,6 @@ from cryptography.fernet import Fernet
 import bcrypt
 import os
 
-key = b'YrAv2bNkJ1gkE5F15tclnM_1toW_5-FK0LjSafE2xhE='
-
-# Initialize the Fernet cipher suite after ensuring the secret key is set
-cipher_suite = Fernet(key)
 
 class CashierUpdate(BaseModel):
     cashierID: int
@@ -25,12 +21,6 @@ class CashierCreate(BaseModel):
     cashierID: int
     username: str
     password: str
-
-    @validator('password')
-    def hash_password(cls, password):
-        # Encrypt the password using Fernet
-        encrypted_password = cipher_suite.encrypt(password.encode('utf-8'))
-        return encrypted_password.decode('utf-8')
 
 class User(BaseModel):
     username: str
@@ -72,14 +62,11 @@ async def read_cashier(
 @cashierRouter.post("/cashier/", response_model=CashierCreate)
 async def create_cashier(cashier: CashierCreate, db=Depends(get_db)):
     try:
-        # Encrypt the password using Fernet
-        encrypted_password = cipher_suite.encrypt(cashier.password.encode())
-
         # Construct the SQL query to insert a new cashier
         query = "INSERT INTO cashier (cashierID, username, password) VALUES (%s, %s,%s)"
 
         # Execute the query with the provided data
-        db[0].execute(query, (cashier.cashierID, cashier.username, encrypted_password.decode()))
+        db[0].execute(query, (cashier.cashierID, cashier.username, cashier.password))
 
         # Commit the transaction
         db[1].commit()
@@ -155,29 +142,11 @@ async def login(user: User, db=Depends(get_db)):
 
         if result:
             stored_username = result[0]  # Extract username from tuple
-            stored_password = result[1]  # Extract encrypted password from tuple
+            stored_password = result[1]  # Extract password from tuple
 
-            # Log stored password hash and input password for debugging
-            print(f"Stored encrypted password: {stored_password}")
-            print(f"Input password: {user.password}")
-
-            # Try to decrypt the stored password if it's not empty
-            if stored_password:
-                print("Decrypting password...")
-                try:
-                    print("Decryption Trying.")
-                    decrypted_password = cipher_suite.decrypt(stored_password)
-                    decrypted_password = decrypted_password.decode()
-                    print("Decryption successful.")
-                except Exception as decrypt_error:
-                    print(f"Decryption failed: {str(decrypt_error)}")
-                    raise HTTPException(status_code=500, detail="Internal Server Error: Decryption failed")
-
-                # Compare the stored decrypted password with the input password
-                if decrypted_password == user.password:
-                    return {"message": "Login successful"}
-                else:
-                    raise HTTPException(status_code=401, detail="Invalid username or password")
+            # Compare the stored password with the input password
+            if stored_password == user.password:
+                return {"message": "Login successful"}
             else:
                 raise HTTPException(status_code=401, detail="Invalid username or password")
         else:

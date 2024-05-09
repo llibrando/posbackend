@@ -4,7 +4,8 @@ from model.db import get_db
 import bcrypt
 import mysql.connector
 from pydantic import BaseModel
-import time, datetime
+from datetime import datetime, time
+
 
 ordersRouter = APIRouter(tags=["Orders"])
 
