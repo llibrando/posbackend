@@ -1,10 +1,9 @@
 # model/orders.py
 from fastapi import Depends, HTTPException, APIRouter, Form
 from model.db import get_db
-import bcrypt
 import mysql.connector
 from pydantic import BaseModel
-from datetime import datetime, time
+from datetime import datetime
 
 
 ordersRouter = APIRouter(tags=["Orders"])
@@ -36,36 +35,44 @@ async def read_orders(
         }
     raise HTTPException(status_code=404, detail="Order not found")
 
-# -------------------PUT/CREATE----------------------------------
+# -------------------CREATE----------------------------------
 @ordersRouter.post("/orders/", response_model=dict)
 async def create_order(
-    order_id:int,
-    order_status: str, 
-    order_date: str, 
-    order_time: str, 
-    order_total: int, db=Depends(get_db)):
+    order_items: str = Form(...),
+    order_type: str = Form(...),
+    order_total: int = Form(...),
+    db=Depends(get_db)
+):
     try:
-        # Insert the new order into the database
-        query = "INSERT INTO orders (OrderID, OrderStatus,orderDate,orderTime, orderTotal) VALUES (%s, %s, %s, %s,%s)"
-        db[0].execute(query, (order_id,order_status, order_date, order_time, order_total))
+        current_date = datetime.now().date()
+        current_time = datetime.now().time()
 
-        # Get the last inserted order ID
-        db[0].execute("SELECT LAST_INSERT_ID()")
-        order_id = db[0].fetchone()[0]
+        # Fetching the current maximum order ID
+        db[0].execute("SELECT MAX(OrderID) FROM orders")
+        max_order_id = db[0].fetchone()[0]
+        if max_order_id is None:
+            max_order_id = 0
+
+        # Incrementing the order ID for the new order
+        order_id = max_order_id + 1
+
+        # Inserting the order into the database with the calculated order ID
+        insert_query = "INSERT INTO orders (OrderID, OrderItems, OrderType, OrderDate, OrderTime, OrderTotal) VALUES (%s, %s, %s, %s, %s, %s)"
+        db[0].execute(insert_query, (order_id, order_items, order_type, current_date, current_time, order_total))
         db[1].commit()
 
-        # Return success message
         return { 
-        "orderID": order_id,
-        "orderStatus": order_status,
-        "orderDate": order_date,
-        "orderTime": order_time,
-        "orderTotal": order_total}
+            "orderID": order_id,
+            "orderItems": order_items,
+            "orderType": order_type,
+            "orderDate": current_date,
+            "orderTime": current_time,
+            "orderTotal": order_total
+        }
     except mysql.connector.Error as e:
-        # Handle database errors
+        db[1].rollback()
         raise HTTPException(status_code=500, detail=f"Database Error: {str(e)}")
     finally:
-        # Close the cursor and database connection
         db[0].close()
         
 #--------------------UPDATE----------------------

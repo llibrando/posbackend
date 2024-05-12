@@ -1,11 +1,11 @@
 # model/menu.py
-from fastapi import Depends, HTTPException, APIRouter, UploadFile, File, Form
+from fastapi import Depends, HTTPException, APIRouter, UploadFile, File, Form, Header
 from .db import get_db
 from pydantic import BaseModel
+import os
 
 
 class MenuItem(BaseModel):
-    menuItemID: int
     menuItemCategory: str
     menuItemName: str
     menuItemPrice: int
@@ -18,9 +18,9 @@ menuRouter = APIRouter(tags=["Menu"])
 async def read_menu(
     db=Depends(get_db)
 ):
-    query = "SELECT ItemID,menuItemCategory, menuItemName, menuItemPrice FROM menu"
+    query = "SELECT ItemID,menuItemCategory, menuItemName, menuItemPrice, menuItemPic FROM menu"
     db[0].execute(query)
-    menu = [{"ItemID": menu[0], "menuItemCategory":menu[1], "menuItemName": menu[2],"menuItemPrice": menu[3]} for menu in db[0].fetchall()]
+    menu = [{"ItemID": menu[0], "menuItemCategory":menu[1], "menuItemName": menu[2],"menuItemPrice": menu[3],"menuItemPic": menu[4]} for menu in db[0].fetchall()]
     return menu
 
 @menuRouter.get("/menu/showsnacks", response_model=list)
@@ -79,53 +79,35 @@ async def read_menu(ItemID: int, db=Depends(get_db)):
 # -----------------------------POST/CREATE----------------------------------
 @menuRouter.post("/menu/", response_model=MenuItem)
 async def create_menu_item(
-    menuItemID: int = Form(...),
     menuItemCategory: str = Form(...),
     menuItemName: str = Form(...),
     menuItemPrice: int = Form(...),
-    menuItemPic: UploadFile = File(...),
+    menuItemPic: str = Form(...),
     db=Depends(get_db)
 ):
     try:
-        # Check if the menuItemID already exists
-        query_check_id = "SELECT ItemID FROM menu WHERE ItemID = %s"
-        db[0].execute(query_check_id, (menuItemID,))
-        existing_id = db[0].fetchone()
-
-        if existing_id:
-            # If the item ID already exists, raise an HTTPException with a 400 status code
-            raise HTTPException(status_code=400, detail="Item ID already exists. Please try another ID.")
-
-        # Read the contents of the uploaded file
-        pic_content = await menuItemPic.read()
-
-        # Insert the new item into the database
-        query_insert_item = "INSERT INTO menu (ItemID, menuItemCategory, menuItemName, menuItemPrice, menuItemPic) VALUES (%s, %s, %s, %s, %s)"
-        db[0].execute(query_insert_item, (menuItemID, menuItemCategory, menuItemName, menuItemPrice, pic_content))
-
-        # Retrieve the last inserted ID using LAST_INSERT_ID()
-        db[0].execute("SELECT LAST_INSERT_ID()")
-        new_item_id = db[0].fetchone()[0]
+        # Insert the new item into the database without providing menuItemID
+        query_insert_item = "INSERT INTO menu (menuItemCategory, menuItemName, menuItemPrice, menuItemPic) VALUES (%s, %s, %s, %s)"
+        db[0].execute(query_insert_item, (menuItemCategory, menuItemName, menuItemPrice, menuItemPic))
         db[1].commit()
 
-        return {"item_id": new_item_id, "menuItemID": menuItemID, "menuItemCategory": menuItemCategory, "menuItemName": menuItemName, "menuItemPrice": menuItemPrice}
+
+
+        return {"menuItemCategory": menuItemCategory, "menuItemName": menuItemName, "menuItemPrice": menuItemPrice, "menuItemPic": menuItemPic}
     except Exception as e:
-        # If an error occurs, raise an HTTPException with a 500 status code
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
     finally:
-        # Close the cursor and database connection
         db[0].close()
-
 
 
 # ----------------PUT/UPDATE------------------------------------------------
 @menuRouter.put("/menu/{menuItemID}", response_model=dict)
-async def update_order(
+async def update_order( 
     menuItemID: int,  
-    menuItemCategory: str,
-    menuItemName: str, 
-    menuItemPrice: int, 
-    menuItemPic: str,
+    menuItemCategory: str = Form(...),
+    menuItemName: str = Form(...),
+    menuItemPrice: int = Form(...),
+    menuItemPic: str = Form(...),  # Keep it as a string
     db=Depends(get_db)
 ):
     print("Received item ID:", menuItemID)
@@ -146,6 +128,7 @@ async def update_order(
     params = (menuItemCategory, menuItemName, menuItemPrice, menuItemPic, menuItemID)
 
     try:
+        # Execute the update query
         db[0].execute(update_query, params)
         affected_rows = db[0].rowcount
         db[1].commit()
