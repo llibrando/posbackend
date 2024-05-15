@@ -3,26 +3,63 @@ from fastapi import Depends, HTTPException, APIRouter, Form
 from model.db import get_db
 import mysql.connector
 from pydantic import BaseModel
-from datetime import datetime
-
+from datetime import datetime, timedelta
 
 ordersRouter = APIRouter(tags=["Orders"])
 
 # CRUD operations
 
-@ordersRouter.get("/orders/", response_model=list)
-async def read_orders(
-    db=Depends(get_db)
-):
-    query = "SELECT OrderID, OrderStatus,orderTime, orderTotal FROM orders"
+@ordersRouter.get("/orders/showOrders", response_model=list)
+async def read_orders(db=Depends(get_db)):  
+    query = "SELECT * FROM orders WHERE orderType IN ('Cash', 'Gcash')"
     db[0].execute(query)
-    orders = [{"OrderID": orders[0], "orderStatus": orders[1],"orderTime": orders[2],"orderTotal": orders[3]} for orders in db[0].fetchall()]
+    orders = [{
+        "OrderID": order[0],
+        "orderItem": order[1],
+        "orderType": order[2],
+        "orderDate": order[3],
+        "orderTime": str(timedelta(seconds=order[4].seconds)),  # Convert time duration to string
+        "orderTotal": order[5]
+    } for order in db[0].fetchall()]
+    return orders
+
+@ordersRouter.get("/orders/payment-types", response_model=list)
+async def get_payment_types(db=Depends(get_db)):
+    try:
+        # Query to get payment type data
+        query = "SELECT orderType, COUNT(*), SUM(orderTotal) FROM orders GROUP BY orderType"
+
+        db[0].execute(query)
+        payment_types = [{
+            "type": row[0],
+            "transactions": row[1],
+            "totalIncome": row[2]
+        } for row in db[0].fetchall()]
+
+        return payment_types
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+    finally:
+        db[0].close()
+
+@ordersRouter.get("/orders/showDebt", response_model=list)
+async def read_orders(db=Depends(get_db)):  
+    query = "SELECT * FROM orders WHERE orderType = 'Tally'"
+    db[0].execute(query)
+    orders = [{
+        "OrderID": order[0],
+        "orderItem": order[1],
+        "orderType": order[2],
+        "orderDate": order[3],
+        "orderTime": str(timedelta(seconds=order[4].seconds)),  # Convert time duration to string
+        "orderTotal": order[5]
+    } for order in db[0].fetchall()]
     return orders
 
 
 @ordersRouter.get("/orders/{OrderID}", response_model=dict)
 async def read_orders(
-    OrderID: int, 
+    OrderID: int,   
     db=Depends(get_db)
 ):
     query = "SELECT OrderID, orderStatus FROM orders WHERE OrderID = %s"
@@ -77,6 +114,7 @@ async def create_order(
         
 #--------------------UPDATE----------------------
 @ordersRouter.put("/orders/{order_id}",response_model=dict)
+
 async def update_order(
     OrderID: int,
     orderStatus: str, 
@@ -110,7 +148,6 @@ async def delete_order(
     db=Depends(get_db)
 ):
     try:
-        # Check if the cashier exists
         query_check_order = "SELECT OrderID FROM orders WHERE OrderID = %s"
         db[0].execute(query_check_order, (order_id,))
         existing_order = db[0].fetchone()
@@ -118,7 +155,6 @@ async def delete_order(
         if not existing_order:
             raise HTTPException(status_code=404, detail="Order not found")
 
-        # Delete the cashier
         query_delete_order = "DELETE FROM orders WHERE OrderID = %s"
         db[0].execute(query_delete_order, (order_id,))
         db[1].commit()
